@@ -7,7 +7,7 @@ from time import time
 
 
 class TestLogger:
-    def __init__(self, source, threadname="main"):
+    def __init__(self, source, threadname="main", stdout=False):
         self.template = {
             "source": source,
             "thread": threadname,
@@ -15,6 +15,7 @@ class TestLogger:
         }
         directory = os.environ.get("MOZ_UPLOAD_DIR", ".")
         self.fh = open(os.path.join(directory, threadname + "_raw.log"), "a")
+        self.stdout = stdout
 
     def _record(self, **kwargs):
         record = self.template.copy()
@@ -24,7 +25,10 @@ class TestLogger:
         return record
 
     def _log_obj(self, obj):
-        print(json.dumps(obj, sort_keys=True), file=self.fh)
+        line = json.dumps(obj, sort_keys=True)
+        print(line, file=self.fh)
+        if self.stdout:
+            print(line)
 
     def _log(self, **kwargs):
         self._log_obj(self._record(**kwargs))

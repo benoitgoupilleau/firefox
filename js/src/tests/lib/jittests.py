@@ -562,12 +562,8 @@ def print_automation_format(ok, res, slog):
     # INFO stdout          > baz
     # INFO stderr         2> TypeError: or something
     # TEST-UNEXPECTED-FAIL | jit_test.py: Test execution interrupted by user
-    result = "TEST-PASS" if ok else "TEST-UNEXPECTED-FAIL"
     message = "Success" if ok else res.describe_failure()
     jitflags = " ".join(res.test.jitflags)
-    print(
-        f'{result} | {res.test.relpath_top} | {message} (code {res.rc}, args "{jitflags}") [{res.dt:.1f} s]'
-    )
 
     details = {
         "message": message,
@@ -579,26 +575,44 @@ def print_automation_format(ok, res, slog):
         details["extra"].update(res.extra)
     slog.test(res.test.relpath_tests, "PASS" if ok else "FAIL", res.dt, **details)
 
+    if not slog.stdout:
+        result = "TEST-PASS" if ok else "TEST-UNEXPECTED-FAIL"
+        print(
+            f'{result} | {res.test.relpath_top} | {message} (code {res.rc}, args "{jitflags}") [{res.dt:.1f} s]'
+        )
+
     # For failed tests, print as much information as we have, to aid debugging.
     if ok:
         return
-    print(f"INFO exit-status     : {res.rc}")
-    print(f"INFO timed-out       : {res.timed_out}")
-    warnings = []
-    for line in res.out.splitlines():
-        # See Bug 1868693
-        if line.startswith("WARNING") and "unused DT entry" in line:
-            warnings.append(line)
-            continue
-        print("INFO stdout          > " + line.strip())
-    for line in res.err.splitlines():
-        # See Bug 1868693
-        if line.startswith("WARNING") and "unused DT entry" in line:
-            warnings.append(line)
-            continue
-        print("INFO stderr         2> " + line.strip())
-    for line in warnings:
-        print("INFO (warn-stderr)  2> " + line.strip())
+    if slog.stdout:
+        slog.log_info(f"exit-status: {res.rc}")
+        slog.log_info(f"timed-out: {res.timed_out}")
+        for line in res.out.splitlines():
+            if line.startswith("WARNING") and "unused DT entry" in line:
+                continue
+            slog.log_info("stdout: " + line.strip())
+        for line in res.err.splitlines():
+            if line.startswith("WARNING") and "unused DT entry" in line:
+                continue
+            slog.log_info("stderr: " + line.strip())
+    else:
+        print(f"INFO exit-status     : {res.rc}")
+        print(f"INFO timed-out       : {res.timed_out}")
+        warnings = []
+        for line in res.out.splitlines():
+            # See Bug 1868693
+            if line.startswith("WARNING") and "unused DT entry" in line:
+                warnings.append(line)
+                continue
+            print("INFO stdout          > " + line.strip())
+        for line in res.err.splitlines():
+            # See Bug 1868693
+            if line.startswith("WARNING") and "unused DT entry" in line:
+                warnings.append(line)
+                continue
+            print("INFO stderr         2> " + line.strip())
+        for line in warnings:
+            print("INFO (warn-stderr)  2> " + line.strip())
 
 
 def print_test_summary(num_tests, failures, complete, slow_tests, doing, options):
@@ -768,10 +782,17 @@ def process_test_results(results, num_tests, pb, options, slog):
     return print_test_summary(num_tests, failures, complete, slow_tests, doing, options)
 
 
+def _is_try():
+    repo = os.environ.get("GECKO_HEAD_REPOSITORY", "")
+    if "try" in repo:
+        return True
+    return "TRY_COMMIT_MSG" in os.environ
+
+
 def run_tests(tests, num_tests, prefix, options, remote=False):
     slog = None
     if options.format == "automation":
-        slog = TestLogger("jittests")
+        slog = TestLogger("jittests", stdout=_is_try())
         slog.suite_start()
 
     if remote:

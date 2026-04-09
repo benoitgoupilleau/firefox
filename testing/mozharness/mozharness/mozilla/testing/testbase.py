@@ -486,8 +486,16 @@ You can set this by specifying --test-url URL
         )
         self.download_unpack(self.test_url, test_install_dir, extract_dirs=extract_dirs)
 
+    def _is_try(self):
+        branch = self.config.get("branch", "")
+        if branch and ("try" in branch or "Try" in branch):
+            return True
+        return "TRY_COMMIT_MSG" in os.environ
+
     def structured_output(self, suite_category):
         unstructured_suites = self.config.get("unstructured_suites", [])
+        if suite_category in unstructured_suites and self._is_try():
+            return True
         return suite_category not in unstructured_suites
 
     def get_test_output_parser(

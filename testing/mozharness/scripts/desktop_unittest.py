@@ -964,6 +964,8 @@ class DesktopUnittest(TestingMixin, MercurialScript, MozbaseMixin, CodeCoverageM
         if not unstructured_flavors.get(
             suite_category
         ) or flavor in unstructured_flavors.get(suite_category):
+            if self._is_try():
+                return True
             return False
         return True
 
