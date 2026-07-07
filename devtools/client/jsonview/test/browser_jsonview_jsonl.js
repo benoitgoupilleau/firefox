@@ -54,6 +54,34 @@ add_task(async function testLineByLineParsing() {
   BrowserTestUtils.removeTab(tab);
 });
 
+add_task(async function testSaveAsRestoresJsonlContentType() {
+  info("Test JSONL Save As started");
+
+  const useDownloadDir = SpecialPowers.getBoolPref(
+    "browser.download.useDownloadDir"
+  );
+  SpecialPowers.setBoolPref("browser.download.useDownloadDir", false);
+  const { MockFilePicker } = SpecialPowers;
+  MockFilePicker.init();
+  MockFilePicker.returnValue = MockFilePicker.returnCancel;
+
+  const content = '{"a":1}\n{"b":2}\n';
+  const TEST_URL = `data:application/jsonlines,${encodeURIComponent(content)}`;
+  const tab = await addJsonViewTab(TEST_URL);
+
+  await SpecialPowers.spawn(tab.linkedBrowser, [], () => {
+    is(
+      content.document.contentType,
+      "application/jsonlines",
+      "Save-As sees the original content type restored, not the internal one"
+    );
+  });
+
+  BrowserTestUtils.removeTab(tab);
+  MockFilePicker.cleanup();
+  SpecialPowers.setBoolPref("browser.download.useDownloadDir", useDownloadDir);
+});
+
 add_task(async function testExtensionFallback() {
   info("Test .jsonl extension fallback started");
 
