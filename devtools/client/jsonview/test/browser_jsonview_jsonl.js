@@ -43,6 +43,14 @@ add_task(async function testLineByLineParsing() {
   );
   is(row3Label, "Line 4", "Line 4 (invalid JSON) still gets its own row");
 
+  const row3Error = await getElementText(
+    `.jsonPanelBox .treeTable .treeRow:nth-of-type(3) .jsonlLineError`
+  );
+  ok(
+    row3Error.includes("not json"),
+    "The invalid line's raw text is shown in its error row"
+  );
+
   BrowserTestUtils.removeTab(tab);
 });
 
