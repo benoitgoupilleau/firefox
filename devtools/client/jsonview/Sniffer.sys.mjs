@@ -13,6 +13,7 @@ XPCOMUtils.defineLazyPreferenceGetter(
 );
 
 const JSON_VIEW_MIME_TYPE = "application/vnd.mozilla.json.view";
+const JSONL_VIEW_MIME_TYPE = "application/vnd.mozilla.jsonl.view";
 
 function getContentDisposition(channel) {
   try {
@@ -23,13 +24,20 @@ function getContentDisposition(channel) {
   }
 }
 
+function getFileExtension(request) {
+  try {
+    return request.URI.QueryInterface(Ci.nsIURL).fileExtension.toLowerCase();
+  } catch (e) {
+    // The URI scheme doesn't support nsIURL (e.g. some data: URIs).
+    return "";
+  }
+}
+
 /**
  * This component represents a sniffer (implements nsIContentSniffer
  * interface) responsible for changing top level 'application/json'
- * document types to: 'application/vnd.mozilla.json.view'.
- *
- * This internal type is consequently rendered by JSON View component
- * that represents the JSON through a viewer interface.
+ * and JSON Lines document types to internal types consumed by the
+ * JSON View component.
  *
  * This is done in the .js file rather than a .sys.mjs to avoid creating
  * a compartment at startup when no JSON is being viewed.
@@ -50,8 +58,20 @@ export class Sniffer {
         if (/^application\/(?:.+\+)?json$/.test(request.contentType)) {
           return JSON_VIEW_MIME_TYPE;
         }
+
+        // Same idea, but for JSON Lines (one JSON value per line):
+        // application/jsonlines, application/x-ndjson, or a .jsonl
+        // file served without a matching (or without any) content type.
+        if (
+          /^application\/(?:jsonlines|x-ndjson)$/.test(request.contentType) ||
+          getFileExtension(request) === "jsonl"
+        ) {
+          return JSONL_VIEW_MIME_TYPE;
+        }
       } else if (request.contentType === JSON_VIEW_MIME_TYPE) {
         return "application/json";
+      } else if (request.contentType === JSONL_VIEW_MIME_TYPE) {
+        return "application/jsonlines";
       }
     }
 
