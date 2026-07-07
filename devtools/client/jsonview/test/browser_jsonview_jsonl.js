@@ -3,6 +3,10 @@
 
 "use strict";
 
+function getRowsCount() {
+  return getElementCount(".jsonPanelBox .treeTable .treeRow");
+}
+
 add_task(async function testContentTypeSniffing() {
   info("Test JSONL content-type sniffing started");
 
@@ -35,9 +39,7 @@ add_task(async function testLineByLineParsing() {
   is(await getRowText(0), `Line 1: 1`, "Line 1 parsed as a number");
   is(await getRowText(1), `Line 3: "three"`, "Line 3 parsed as a string");
   // Line 4 ("not json") could not be parsed as JSON; it's the 3rd row
-  // (blank lines 2 and 5 add no row). Task 3 gives this a readable
-  // rendering; for now, just confirm it doesn't stop the rest of the
-  // document from being usable.
+  // (blank lines 2 and 5 add no row).
   const row3Label = await getElementText(
     `.jsonPanelBox .treeTable .treeRow:nth-of-type(3) .treeLabelCell`
   );
