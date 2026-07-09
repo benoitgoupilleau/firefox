@@ -36,14 +36,14 @@ add_task(async function testLineByLineParsing() {
   const tab = await addJsonViewTab(TEST_URL);
 
   is(await getRowsCount(), 3, "One row per non-blank line");
-  is(await getRowText(0), `Line 1: 1`, "Line 1 parsed as a number");
-  is(await getRowText(1), `Line 3: "three"`, "Line 3 parsed as a string");
+  is(await getRowText(0), `1: 1`, "Line 1 parsed as a number");
+  is(await getRowText(1), `3: "three"`, "Line 3 parsed as a string");
   // Line 4 ("not json") could not be parsed as JSON; it's the 3rd row
   // (blank lines 2 and 5 add no row).
   const row3Label = await getElementText(
     `.jsonPanelBox .treeTable .treeRow:nth-of-type(3) .treeLabelCell`
   );
-  is(row3Label, "Line 4", "Line 4 (invalid JSON) still gets its own row");
+  is(row3Label, "4", "Line 4 (invalid JSON) still gets its own row");
 
   const row3Error = await getElementText(
     `.jsonPanelBox .treeTable .treeRow:nth-of-type(3) .jsonlLineError`

@@ -142,7 +142,7 @@ function expandBucketsWithMatches(data, searchFilter) {
 
 /**
  * Parses a JSON Lines document (one JSON value per line) into a
- * single ordered object keyed "Line <n>" (1-based, real file line
+ * single ordered object keyed "<n>" (1-based, real file line
  * number; blank lines are skipped so numbers can have gaps). A line
  * that fails to parse becomes a JsonlLineError instead of blocking
  * the rest of the document.
@@ -157,9 +157,9 @@ function parseJsonl(text) {
     }
     const lineNumber = i + 1;
     try {
-      entries[`Line ${lineNumber}`] = parseJsonLossless(line);
+      entries[`${lineNumber}`] = parseJsonLossless(line);
     } catch (err) {
-      entries[`Line ${lineNumber}`] = new JsonlLineError(line, err.message);
+      entries[`${lineNumber}`] = new JsonlLineError(line, err.message);
     }
   }
   return entries;
