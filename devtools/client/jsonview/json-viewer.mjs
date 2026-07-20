@@ -12,6 +12,7 @@ import TreeViewClass from "resource://devtools/client/shared/components/tree/Tre
 import { ObjectProvider } from "resource://devtools/client/shared/components/tree/ObjectProvider.mjs";
 import { JSON_NUMBER } from "resource://devtools/client/shared/components/reps/reps/constants.mjs";
 import { parseJsonLossless } from "resource://devtools/client/shared/components/reps/reps/rep-utils.mjs";
+import { JsonlLineError } from "resource://devtools/client/jsonview/jsonl-utils.mjs";
 import { createSizeProfile } from "resource://devtools/client/jsonview/json-size-profiler.mjs";
 
 const { MainTabbedArea } = createFactories(MainTabbedAreaClass);
@@ -137,6 +138,31 @@ function expandBucketsWithMatches(data, searchFilter) {
   }
 
   return expandedNodes;
+}
+
+/**
+ * Parses a JSON Lines document (one JSON value per line) into a
+ * single ordered object keyed "<n>" (1-based, real file line
+ * number; blank lines are skipped so numbers can have gaps). A line
+ * that fails to parse becomes a JsonlLineError instead of blocking
+ * the rest of the document.
+ */
+function parseJsonl(text) {
+  const entries = {};
+  const lines = text.split("\n");
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+    if (!line.trim()) {
+      continue;
+    }
+    const lineNumber = i + 1;
+    try {
+      entries[`${lineNumber}`] = parseJsonLossless(line);
+    } catch (err) {
+      entries[`${lineNumber}`] = new JsonlLineError(line, err.message);
+    }
+  }
+  return entries;
 }
 
 /**
@@ -357,7 +383,11 @@ const promise = (async function parseJSON() {
   // If the JSON has been loaded, parse it immediately before loading the app.
   const jsonString = input.jsonText.textContent;
   try {
-    input.json = parseJsonLossless(jsonString);
+    if (JSONView.isJsonl) {
+      input.json = parseJsonl(jsonString);
+    } else {
+      input.json = parseJsonLossless(jsonString);
+    }
 
     // Expose a clean public API for accessing JSON data from the console
     // This is not tied to internal implementation details
